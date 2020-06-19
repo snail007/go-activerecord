@@ -2,6 +2,7 @@ package sqlite3
 
 import (
 	"bytes"
+	"crypto/md5"
 	"database/sql"
 	"encoding/gob"
 	"errors"
@@ -12,7 +13,8 @@ import (
 	"strings"
 	"time"
 
-	_ "github.com/CovenantSQL/go-sqlite3-encrypt"
+	// _ "github.com/CovenantSQL/go-sqlite3-encrypt"
+	_ "github.com/mutecomm/go-sqlcipher"
 )
 
 type DBGroup struct {
@@ -93,11 +95,12 @@ func (db *DB) init(config DBConfig) (err error) {
 }
 
 func (db *DB) getDSN() string {
-	return fmt.Sprintf("file:%s?cache=%s&mode=%s&_crypto_key=%s",
+	//_pragma_key=x'%s'&_pragma_cipher_page_size=4096
+	return fmt.Sprintf("file:%s?cache=%s&mode=%s&_pragma_key=x'%s'&_pragma_cipher_page_size=4096",
 		url.QueryEscape(db.Config.Database),
 		url.QueryEscape(db.Config.CacheMode),
 		url.QueryEscape(db.Config.OpenMode),
-		url.QueryEscape(db.Config.Password),
+		url.QueryEscape(db.md5(db.Config.Password)),
 	)
 	// return fmt.Sprintf("file:%s?_crypto_key=%s", url.QueryEscape(db.Config.Database), url.QueryEscape(db.Config.Password))
 }
@@ -106,14 +109,18 @@ func (db *DB) getDB() (connPool *sql.DB, err error) {
 	if err != nil {
 		return
 	}
-	_, err = connPool.Exec(fmt.Sprintf("PRAGMA key = %s;", db.Config.Password))
-	if err != nil {
-		return
-	}
+	// _, err = connPool.Exec(fmt.Sprintf("PRAGMA key = %s;", db.Config.Password))
+	// if err != nil {
+	// 	return
+	// }
 	connPool.SetMaxIdleConns(0)
 	connPool.SetMaxOpenConns(0)
 	//err = connPool.Ping()
 	return
+}
+func (db *DB) md5(password string) string {
+	s := fmt.Sprintf("%x", md5.Sum([]byte(password)))
+	return strings.ToUpper(s + s)
 }
 func (db *DB) AR() (ar *ActiveRecord) {
 	ar = new(ActiveRecord)
