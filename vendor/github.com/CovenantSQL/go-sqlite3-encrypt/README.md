@@ -1,24 +1,25 @@
-go-sqlite3
+go-sqlite3-encrypt
 ==========
 
-[![GoDoc Reference](https://godoc.org/github.com/mattn/go-sqlite3?status.svg)](http://godoc.org/github.com/mattn/go-sqlite3)
-[![Build Status](https://travis-ci.org/mattn/go-sqlite3.svg?branch=master)](https://travis-ci.org/mattn/go-sqlite3)
-[![Coverage Status](https://coveralls.io/repos/mattn/go-sqlite3/badge.svg?branch=master)](https://coveralls.io/r/mattn/go-sqlite3?branch=master)
-[![Go Report Card](https://goreportcard.com/badge/github.com/mattn/go-sqlite3)](https://goreportcard.com/report/github.com/mattn/go-sqlite3)
+[![GoDoc Reference](https://godoc.org/github.com/CovenantSQL/go-sqlite3-encrypt?status.svg)](http://godoc.org/github.com/CovenantSQL/go-sqlite3-encrypt)
+[![Go Report Card](https://goreportcard.com/badge/github.com/CovenantSQL/go-sqlite3-encrypt)](https://goreportcard.com/report/github.com/CovenantSQL/go-sqlite3-encrypt)
 
 # Description
 
+go-sqlite3-encrypt is go-sqlite3 with sqlcipher. follow the instructions below, the cipher extension will be builtin by default.
+
+For easy building, I also put libTomCrypt related files in project.
+
 sqlite3 driver conforming to the built-in database/sql interface
 
-Supported Golang version:
-- 1.9.x
-- 1.10.x
+Supported Golang version: See .travis.yml
 
 [This package follows the official Golang Release Policy.](https://golang.org/doc/devel/release.html#policy)
 
 ### Overview
 
 - [Installation](#installation)
+- [HowTo Encrypt](#howto-encrypt)
 - [API Reference](#api-reference)
 - [Connection String](#connection-string)
 - [Features](#features)
@@ -46,13 +47,31 @@ Supported Golang version:
 
 This package can be installed with the go get command:
 
-    go get github.com/mattn/go-sqlite3
+    go get github.com/CovenantSQL/go-sqlite3-encrypt
 
 _go-sqlite3_ is *cgo* package.
 If you want to build your app using go-sqlite3, you need gcc.
-However, after you have built and installed _go-sqlite3_ with `go install github.com/mattn/go-sqlite3` (which requires gcc), you can build your app without relying on gcc in future.
+However, after you have built and installed _go-sqlite3_ with `go install github.com/CovenantSQL/go-sqlite3-encrypt` (which requires gcc), you can build your app without relying on gcc in future.
 
 ***Important: because this is a `CGO` enabled package you are required to set the environment variable `CGO_ENABLED=1` and have a `gcc` compile present within your path.***
+
+# HowTo Encrypt
+
+You have 2 ways to enable encryption:
+
+### DSN
+
+    1. You can try DSN like this, `sql.Open("sqlite3", "file:dbFileName?_crypto_key=auxten")`
+### PRAGMA
+
+    1. After Open db, before execute any statement do `db.Exec("PRAGMA key = auxten;")`
+
+Thanks for the great works of [sqlcipher](https://github.com/sqlcipher/sqlcipher), [libtomcrypt](https://github.com/libtom/libtomcrypt) and [go-sqlite3](https://github.com/mattn/go-sqlite3)
+
+For more details:
+1. https://github.com/sqlcipher/sqlcipher
+1. https://github.com/libtom/libtomcrypt
+1. https://github.com/mattn/go-sqlite3
 
 # API Reference
 
@@ -67,6 +86,7 @@ This is also known as a DSN string. (Data Source Name).
 
 Options are append after the filename of the SQLite database.
 The database filename and options are seperated by an `?` (Question Mark).
+Options should be URL-encoded (see [url.QueryEscape](https://golang.org/pkg/net/url/#QueryEscape)).
 
 This also applies when using an in-memory database instead of a file.
 
@@ -198,7 +218,7 @@ Additional information:
 
 # Google Cloud Platform
 
-Building on GCP is not possible because `Google Cloud Platform does not allow `gcc` to be executed.
+Building on GCP is not possible because Google Cloud Platform does not allow `gcc` to be executed.
 
 Please work only with compiled final binaries.
 
@@ -281,7 +301,7 @@ To compile this package on Windows OS you must have the `gcc` compiler installed
 3) Open a terminal for the TDM-GCC toolchain, can be found in the Windows Start menu.
 4) Navigate to your project folder and run the `go build ...` command for this package.
 
-For example the TDM-GCC Toolchain can be found [here](ttps://sourceforge.net/projects/tdm-gcc/).
+For example the TDM-GCC Toolchain can be found [here](https://sourceforge.net/projects/tdm-gcc/).
 
 ## Errors
 
@@ -290,7 +310,7 @@ For example the TDM-GCC Toolchain can be found [here](ttps://sourceforge.net/pro
     When receiving a compile time error referencing recompile with `-FPIC` then you
     are probably using a hardend system.
 
-    You can copile the library on a hardend system with the following command.
+    You can compile the library on a hardend system with the following command.
 
     ```bash
     go build -ldflags '-extldflags=-fno-PIC'
@@ -457,15 +477,19 @@ For an example see [shaxbee/go-spatialite](https://github.com/shaxbee/go-spatial
 
     Why is it racy if I use a `sql.Open("sqlite3", ":memory:")` database?
 
-    Each connection to :memory: opens a brand new in-memory sql database, so if
+    Each connection to `":memory:"` opens a brand new in-memory sql database, so if
     the stdlib's sql engine happens to open another connection and you've only
-    specified ":memory:", that connection will see a brand new database. A
-    workaround is to use "file::memory:?mode=memory&cache=shared". Every
-    connection to this string will point to the same in-memory database. 
+    specified `":memory:"`, that connection will see a brand new database. A
+    workaround is to use `"file::memory:?cache=shared"` (or `"file:foobar?mode=memory&cache=shared"`). Every
+    connection to this string will point to the same in-memory database.
+    
+    Note that if the last database connection in the pool closes, the in-memory database is deleted. Make sure the [max idle connection limit](https://golang.org/pkg/database/sql/#DB.SetMaxIdleConns) is > 0, and the [connection lifetime](https://golang.org/pkg/database/sql/#DB.SetConnMaxLifetime) is infinite.
     
     For more information see
     * [#204](https://github.com/mattn/go-sqlite3/issues/204)
     * [#511](https://github.com/mattn/go-sqlite3/issues/511)
+    * https://www.sqlite.org/sharedcache.html#shared_cache_and_in_memory_databases
+    * https://www.sqlite.org/inmemorydb.html#sharedmemdb
 
 - Reading from database with large amount of goroutines fails on OSX.
 
@@ -473,7 +497,7 @@ For an example see [shaxbee/go-spatialite](https://github.com/shaxbee/go-spatial
 
     For more information see [#289](https://github.com/mattn/go-sqlite3/issues/289)
 
-- Trying to execure a `.` (dot) command throws an error.
+- Trying to execute a `.` (dot) command throws an error.
 
     Error: `Error: near ".": syntax error`
     Dot command are part of SQLite3 CLI not of this library.
@@ -484,7 +508,7 @@ For an example see [shaxbee/go-spatialite](https://github.com/shaxbee/go-spatial
 
 - Error: `database is locked`
 
-    When you get an database is locked. Please use the following options.
+    When you get a database is locked. Please use the following options.
 
     Add to DSN: `cache=shared`
 
@@ -496,7 +520,7 @@ For an example see [shaxbee/go-spatialite](https://github.com/shaxbee/go-spatial
     Second please set the database connections of the SQL package to 1.
     
     ```go
-    db.SetMaxOpenConn(1)
+    db.SetMaxOpenConns(1)
     ```
 
     More information see [#209](https://github.com/mattn/go-sqlite3/issues/209)
