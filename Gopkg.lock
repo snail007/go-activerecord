@@ -2,36 +2,32 @@
 
 
 [[projects]]
-  digest = "1:3cafc6a5a1b8269605d9df4c6956d43d8011fc57f266ca6b9d04da6c09dee548"
-  name = "github.com/CovenantSQL/go-sqlite3-encrypt"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "25ecb14adfc7543176f7d85291ec7dba82c6f7e4"
-  version = "v1.9.0"
-
-[[projects]]
-  digest = "1:a3af33fd30536d9c5a7b6ad542390919e57c1125097a194c7b3d9904109a0611"
   name = "github.com/go-sql-driver/mysql"
   packages = ["."]
-  pruneopts = "UT"
   revision = "17ef3dd9d98b69acec3e85878995ada9533a9370"
   version = "v1.5.0"
 
 [[projects]]
-  digest = "1:eea5c9cf8cd07b4c466fd309a14ac689b9e5e4175f3c92d13709232d67069d7c"
   name = "github.com/mattn/go-sqlite3"
   packages = ["."]
-  pruneopts = "UT"
-  revision = "db4c9426f851c76327db11e1b5301e520e0e048b"
-  version = "v2.0.5"
+  revision = "baaf8a978416040e7f2d00ac36e345098d0588d8"
+  version = "v2.0.6"
+
+[[projects]]
+  name = "github.com/mutecomm/go-sqlcipher"
+  packages = ["."]
+  revision = "55dbde17881f711acb6da09a3eeca312ed16240a"
+  version = "v3.4.2"
+
+[[projects]]
+  branch = "master"
+  name = "golang.org/x/net"
+  packages = ["context"]
+  revision = "627f9648deb96c27737b83199d44bb5c1010cbcf"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  input-imports = [
-    "github.com/CovenantSQL/go-sqlite3-encrypt",
-    "github.com/go-sql-driver/mysql",
-    "github.com/mattn/go-sqlite3",
-  ]
+  inputs-digest = "a729849a839ba80c799320b17d58b7fe4d53e495ff89e66ab82c34cf10be255a"
   solver-name = "gps-cdcl"
   solver-version = 1
