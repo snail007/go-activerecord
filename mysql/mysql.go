@@ -211,12 +211,13 @@ func (db *DB) Query(ar *ActiveRecord) (rs *ResultSet, err error) {
 			scans[i] = &vals[i]
 		}
 		results = []map[string][]byte{}
+		var row map[string][]byte
 		for rows.Next() {
 			err = rows.Scan(scans...)
 			if err != nil {
 				return
 			}
-			row := make(map[string][]byte)
+			row = map[string][]byte{}
 			for k, v := range vals {
 				key := cols[k]
 				row[key] = v
@@ -236,8 +237,7 @@ func (db *DB) Query(ar *ActiveRecord) (rs *ResultSet, err error) {
 			}
 		}
 	}
-	rs = new(ResultSet)
-	rs.Init(&results)
+	rs = NewResultSet(&results)
 	return
 }
 
@@ -968,13 +968,16 @@ type ResultSet struct {
 	RowsAffected int64
 }
 
-func (rs *ResultSet) Init(rawRows *[]map[string][]byte) {
+func NewResultSet(rawRows *[]map[string][]byte) (rs *ResultSet) {
+	rs = &ResultSet{}
 	if rawRows != nil {
 		rs.rawRows = rawRows
 	} else {
 		rs.rawRows = &([]map[string][]byte{})
 	}
+	return
 }
+
 func (rs *ResultSet) Len() int {
 	return len(*rs.rawRows)
 }
