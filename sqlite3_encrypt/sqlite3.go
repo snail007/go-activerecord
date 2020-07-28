@@ -15,6 +15,7 @@ import (
 
 	// _ "github.com/CovenantSQL/go-sqlite3-encrypt"
 	_ "github.com/mutecomm/go-sqlcipher"
+	"github.com/snail007/go-activerecord/utils/makeleaky"
 )
 
 type DBGroup struct {
@@ -226,21 +227,34 @@ func (db *DB) Query(ar *ActiveRecord) (rs *ResultSet, err error) {
 		if err != nil {
 			return
 		}
-		vals := make([][]byte, len(cols))
-		scans := make([]interface{}, len(cols))
-		for i := range vals {
-			scans[i] = &vals[i]
-		}
+		closCnt := len(cols)
+
+		// scans := make([]interface{},closCnt)
+		var scans []interface{}
+		scans = makeleaky.GetX(scans, uint64(len(cols)), func() interface{} {
+			a := make([]interface{}, closCnt)
+			for i := 0; i < closCnt; i++ {
+				a[i] = new([]byte)
+			}
+			return a
+		}).([]interface{})
+		defer func() {
+			for i := 0; i < closCnt; i++ {
+				scans[i] = new([]byte)
+			}
+			makeleaky.PutX(scans, uint64(len(cols)))
+		}()
+
 		results = []map[string][]byte{}
+
 		for rows.Next() {
 			err = rows.Scan(scans...)
 			if err != nil {
 				return
 			}
-			row := make(map[string][]byte)
-			for k, v := range vals {
-				key := cols[k]
-				row[key] = v
+			row := map[string][]byte{}
+			for i := range cols {
+				row[cols[i]] = *(scans[i].(*[]byte))
 			}
 			results = append(results, row)
 		}

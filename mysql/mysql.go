@@ -12,6 +12,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/snail007/go-activerecord/utils/makeleaky"
+
 	_ "github.com/go-sql-driver/mysql"
 )
 
@@ -173,6 +175,7 @@ func (db *DB) ExecSQL(sqlStr string, values ...interface{}) (rs *ResultSet, err 
 	}
 	return
 }
+
 func (db *DB) Query(ar *ActiveRecord) (rs *ResultSet, err error) {
 	var results []map[string][]byte
 	if ar.cacheKey != "" {
@@ -200,27 +203,37 @@ func (db *DB) Query(ar *ActiveRecord) (rs *ResultSet, err error) {
 			return
 		}
 		defer rows.Close()
-		cols := []string{}
-		cols, err = rows.Columns()
-		if err != nil {
-			return
+		cols, e := rows.Columns()
+		if e != nil {
+			return nil, e
 		}
-		vals := make([][]byte, len(cols))
-		scans := make([]interface{}, len(cols))
-		for i := range vals {
-			scans[i] = &vals[i]
-		}
+		closCnt := len(cols)
+
+		// scans := make([]interface{},closCnt)
+		var scans []interface{}
+		scans = makeleaky.GetX(scans, uint64(len(cols)), func() interface{} {
+			a := make([]interface{}, closCnt)
+			for i := 0; i < closCnt; i++ {
+				a[i] = new([]byte)
+			}
+			return a
+		}).([]interface{})
+		defer func() {
+			for i := 0; i < closCnt; i++ {
+				scans[i] = new([]byte)
+			}
+			makeleaky.PutX(scans, uint64(len(cols)))
+		}()
+
 		results = []map[string][]byte{}
-		var row map[string][]byte
 		for rows.Next() {
 			err = rows.Scan(scans...)
 			if err != nil {
 				return
 			}
-			row = map[string][]byte{}
-			for k, v := range vals {
-				key := cols[k]
-				row[key] = v
+			row := map[string][]byte{}
+			for i := range cols {
+				row[cols[i]] = *(scans[i].(*[]byte))
 			}
 			results = append(results, row)
 		}
