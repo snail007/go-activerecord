@@ -232,7 +232,6 @@ func (db *DB) Query(ar *ActiveRecord) (rs *ResultSet, err error) {
 			makeleaky.PutX(scans, uint64(len(cols)))
 		}()
 
-		results = []map[string][]byte{}
 		for rows.Next() {
 			err = rows.Scan(scans...)
 			if err != nil {
