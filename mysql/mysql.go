@@ -112,8 +112,9 @@ func (db *DB) getDB() (connPool *sql.DB, err error) {
 	if err != nil {
 		return
 	}
-	connPool.SetMaxOpenConns(db.Config.SetMaxOpenConns)
-	connPool.SetMaxIdleConns(db.Config.SetMaxIdleConns)
+	connPool.SetConnMaxLifetime(time.Second * time.Duration(db.Config.ConnMaxLifetimeSeconds))
+	connPool.SetMaxOpenConns(db.Config.MaxOpenConns)
+	connPool.SetMaxIdleConns(db.Config.MaxIdleConns)
 	err = connPool.Ping()
 	return
 }
@@ -266,8 +267,9 @@ type DBConfig struct {
 	Timeout                  int
 	ReadTimeout              int
 	WriteTimeout             int
-	SetMaxIdleConns          int
-	SetMaxOpenConns          int
+	MaxIdleConns             int
+	MaxOpenConns             int
+	ConnMaxLifetimeSeconds   int
 	Cache                    Cache
 }
 
@@ -294,8 +296,9 @@ func NewDBConfig() DBConfig {
 		Timeout:                  3000,
 		ReadTimeout:              5000,
 		WriteTimeout:             5000,
-		SetMaxOpenConns:          500,
-		SetMaxIdleConns:          50,
+		MaxOpenConns:             500,
+		MaxIdleConns:             50,
+		ConnMaxLifetimeSeconds:   1800,
 	}
 }
 
