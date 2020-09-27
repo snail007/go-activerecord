@@ -205,11 +205,11 @@ type User struct {
 	Height     float32   `column:"height"`
 	Sex        bool      `column:"sex"`
 	CreateTime time.Time `column:"create_time"`
-	Foo        string    `column:"foo"`
+	Pid        string    `column:"pid"`
 }
 
-var rawRows = []map[string]interface{}{
-	map[string]interface{}{
+var rawRows = []map[string][]byte{
+	map[string][]byte{
 		"name":        []byte("jack"),
 		"id":          []byte("229"),
 		"weight":      []byte("60"),
@@ -218,7 +218,7 @@ var rawRows = []map[string]interface{}{
 		"create_time": []byte("2017-10-10 09:00:09"),
 		"pid":         []byte("1"),
 	},
-	map[string]interface{}{
+	map[string][]byte{
 		"name":        []byte("jack"),
 		"id":          []byte("229"),
 		"weight":      []byte("60"),
@@ -230,8 +230,7 @@ var rawRows = []map[string]interface{}{
 }
 
 func TestStruct(t *testing.T) {
-	rs := ResultSet{}
-	rs.Init(&rawRows)
+	rs := NewResultSet(&rawRows)
 	s, err := rs.Struct(User{})
 	if err != nil {
 		t.Errorf("\n==> Except : \nnil\n==> Got : \n%s", err)
@@ -240,29 +239,25 @@ func TestStruct(t *testing.T) {
 			t.Errorf("\n==> Except : \njack\n==> Got : \n%s", s.(User).Name)
 		}
 		if s.(User).ID != 229 {
-			t.Errorf("\n==> Except : \n229\n==> Got : \n%s", s.(User).ID)
+			t.Errorf("\n==> Except : \n229\n==> Got : \n%d", s.(User).ID)
 		}
 		if s.(User).Weight != 60 {
-			t.Errorf("\n==> Except : \njack\n==> Got : \n%s", s.(User).Weight)
+			t.Errorf("\n==> Except : \njack\n==> Got : \n%d", s.(User).Weight)
 		}
 		if s.(User).Height != 160.3 {
-			t.Errorf("\n==> Except : \njack\n==> Got : \n%s", s.(User).Height)
+			t.Errorf("\n==> Except : \njack\n==> Got : \n%f", s.(User).Height)
 		}
 		if s.(User).Sex != true {
-			t.Errorf("\n==> Except : \ntrue\n==> Got : \n%s", s.(User).Sex)
+			t.Errorf("\n==> Except : \ntrue\n==> Got : \n%v", s.(User).Sex)
 		}
 		if s.(User).CreateTime.String() != "2017-10-10 09:00:09 +0800 CST" {
 			t.Errorf("\n==> Except : \n\"2017-10-10 09:00:09 +0800 CST\"\n==> Got : \n%s", s.(User).CreateTime)
-		}
-		if s.(User).Sex != true {
-			t.Errorf("\n==> Except : \ntrue\n==> Got : \n%s", s.(User).Sex)
 		}
 	}
 
 }
 func TestStructs(t *testing.T) {
-	rs := ResultSet{}
-	rs.Init(&rawRows)
+	rs := NewResultSet(&rawRows)
 	sts, err := rs.Structs(User{})
 	if err != nil {
 		t.Errorf("\n==> Except : \nnil\n==> Got : \n%s", err)
@@ -272,29 +267,25 @@ func TestStructs(t *testing.T) {
 				t.Errorf("\n==> Except : \njack\n==> Got : \n%s", s.(User).Name)
 			}
 			if s.(User).ID != 229 {
-				t.Errorf("\n==> Except : \n229\n==> Got : \n%s", s.(User).ID)
+				t.Errorf("\n==> Except : \n229\n==> Got : \n%d", s.(User).ID)
 			}
 			if s.(User).Weight != 60 {
-				t.Errorf("\n==> Except : \njack\n==> Got : \n%s", s.(User).Weight)
+				t.Errorf("\n==> Except : \njack\n==> Got : \n%d", s.(User).Weight)
 			}
 			if s.(User).Height != 160.3 {
-				t.Errorf("\n==> Except : \njack\n==> Got : \n%s", s.(User).Height)
+				t.Errorf("\n==> Except : \njack\n==> Got : \n%f", s.(User).Height)
 			}
 			if s.(User).Sex != true {
-				t.Errorf("\n==> Except : \ntrue\n==> Got : \n%s", s.(User).Sex)
+				t.Errorf("\n==> Except : \ntrue\n==> Got : \n%v", s.(User).Sex)
 			}
 			if s.(User).CreateTime.String() != "2017-10-10 09:00:09 +0800 CST" {
 				t.Errorf("\n==> Except : \n\"2017-10-10 09:00:09 +0800 CST\"\n==> Got : \n%s", s.(User).CreateTime)
-			}
-			if s.(User).Sex != true {
-				t.Errorf("\n==> Except : \ntrue\n==> Got : \n%s", s.(User).Sex)
 			}
 		}
 	}
 }
 func TestMapStructs(t *testing.T) {
-	rs := ResultSet{}
-	rs.Init(&rawRows)
+	rs := NewResultSet(&rawRows)
 	sts, err := rs.MapStructs("pid", User{})
 	if err != nil {
 		t.Errorf("\n==> Except : \nnil\n==> Got : \n%s", err)
@@ -304,22 +295,19 @@ func TestMapStructs(t *testing.T) {
 				t.Errorf("\n==> Except : \njack\n==> Got : \n%s", s.(User).Name)
 			}
 			if s.(User).ID != 229 {
-				t.Errorf("\n==> Except : \n229\n==> Got : \n%s", s.(User).ID)
+				t.Errorf("\n==> Except : \n229\n==> Got : \n%d", s.(User).ID)
 			}
 			if s.(User).Weight != 60 {
-				t.Errorf("\n==> Except : \njack\n==> Got : \n%s", s.(User).Weight)
+				t.Errorf("\n==> Except : \njack\n==> Got : \n%d", s.(User).Weight)
 			}
 			if s.(User).Height != 160.3 {
-				t.Errorf("\n==> Except : \njack\n==> Got : \n%s", s.(User).Height)
+				t.Errorf("\n==> Except : \njack\n==> Got : \n%f", s.(User).Height)
 			}
 			if s.(User).Sex != true {
-				t.Errorf("\n==> Except : \ntrue\n==> Got : \n%s", s.(User).Sex)
+				t.Errorf("\n==> Except : \ntrue\n==> Got : \n%v", s.(User).Sex)
 			}
 			if s.(User).CreateTime.String() != "2017-10-10 09:00:09 +0800 CST" {
 				t.Errorf("\n==> Except : \n\"2017-10-10 09:00:09 +0800 CST\"\n==> Got : \n%s", s.(User).CreateTime)
-			}
-			if s.(User).Sex != true {
-				t.Errorf("\n==> Except : \ntrue\n==> Got : \n%s", s.(User).Sex)
 			}
 		}
 	}
