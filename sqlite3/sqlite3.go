@@ -242,8 +242,7 @@ func (db *DB) Query(ar *ActiveRecord) (rs *ResultSet, err error) {
 			}
 		}
 	}
-	rs = new(ResultSet)
-	rs.Init(&results)
+	rs = NewResultSet(&results)
 	return
 }
 
@@ -981,7 +980,12 @@ func NewResultSet(rawRows *[]map[string][]byte) (rs *ResultSet) {
 }
 
 func (rs *ResultSet) Len() int {
-	return len(*rs.rawRows)
+	vo := reflect.ValueOf(rs.rawRows)
+	if vo.IsNil() {
+		return 0
+	} else {
+		return len(*rs.rawRows)
+	}
 }
 func (rs *ResultSet) MapRows(keyColumn string) (rowsMap map[string]map[string]string) {
 	rowsMap = map[string]map[string]string{}
