@@ -105,8 +105,8 @@ func (db *DB) getDB() (connPool *sql.DB, err error) {
 	if err != nil {
 		return
 	}
-	connPool.SetMaxIdleConns(0)
-	connPool.SetMaxOpenConns(0)
+	connPool.SetMaxIdleConns(db.Config.MaxIdleConns)
+	connPool.SetMaxOpenConns(db.Config.MaxOpenConns)
 	//err = connPool.Ping()
 	return
 }
@@ -267,6 +267,8 @@ type DBConfig struct {
 	SyncMode                 int
 	OpenMode                 string
 	CacheMode                string
+	MaxIdleConns             int
+	MaxOpenConns             int
 }
 
 func NewDBConfigWith(dbfilename, openMode, cacheMode string, syncMode int) (cfg DBConfig) {
