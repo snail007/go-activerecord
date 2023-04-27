@@ -105,8 +105,8 @@ func (db *DB) getDB() (connPool *sql.DB, err error) {
 	if err != nil {
 		return
 	}
-	connPool.SetMaxIdleConns(0)
-	connPool.SetMaxOpenConns(0)
+	connPool.SetMaxIdleConns(db.Config.MaxIdleConns)
+	connPool.SetMaxOpenConns(db.Config.MaxOpenConns)
 	//err = connPool.Ping()
 	return
 }
@@ -121,12 +121,10 @@ func (db *DB) Begin() (tx *sql.Tx, err error) {
 	return db.ConnPool.Begin()
 }
 func (db *DB) ExecTx(ar *ActiveRecord, tx *sql.Tx) (rs *ResultSet, err error) {
-	return db.execSQLTx(ar.SQL(), len(ar.arInsertBatch), tx, ar.values...)
+	return db.ExecSQLTx(ar.SQL(), tx, ar.values...)
 }
-func (db *DB) ExecSQLTx(tx *sql.Tx, sqlStr string, values ...interface{}) (rs *ResultSet, err error) {
-	return db.execSQLTx(sqlStr, 0, tx, values...)
-}
-func (db *DB) execSQLTx(sqlStr string, arInsertBatchCnt int, tx *sql.Tx, values ...interface{}) (rs *ResultSet, err error) {
+func (db *DB) ExecSQLTx(sqlStr string, tx *sql.Tx, values ...interface{}) (rs *ResultSet, err error) {
+	sqlStr = strings.Replace(sqlStr, db.Config.TablePrefixSqlIdentifier, db.Config.TablePrefix, -1)
 	var stmt *sql.Stmt
 	var result sql.Result
 	rs = new(ResultSet)
@@ -144,20 +142,13 @@ func (db *DB) execSQLTx(sqlStr string, arInsertBatchCnt int, tx *sql.Tx, values 
 	if err != nil {
 		return
 	}
-	l := int64(arInsertBatchCnt)
-	if l > 1 {
-		rs.LastInsertId = rs.LastInsertId - +1
-		rs.RowsAffected = l
-	}
 	return
 }
 func (db *DB) Exec(ar *ActiveRecord) (rs *ResultSet, err error) {
-	return db.execSQL(ar.SQL(), len(ar.arInsertBatch), ar.values...)
+	return db.ExecSQL(ar.SQL(), ar.values...)
 }
 func (db *DB) ExecSQL(sqlStr string, values ...interface{}) (rs *ResultSet, err error) {
-	return db.execSQL(sqlStr, 0, values...)
-}
-func (db *DB) execSQL(sqlStr string, arInsertBatchCnt int, values ...interface{}) (rs *ResultSet, err error) {
+	sqlStr = strings.Replace(sqlStr, db.Config.TablePrefixSqlIdentifier, db.Config.TablePrefix, -1)
 	var stmt *sql.Stmt
 	var result sql.Result
 	rs = new(ResultSet)
@@ -175,13 +166,9 @@ func (db *DB) execSQL(sqlStr string, arInsertBatchCnt int, values ...interface{}
 	if err != nil {
 		return
 	}
-	l := int64(arInsertBatchCnt)
-	if l > 1 {
-		rs.LastInsertId = rs.LastInsertId - +1
-		rs.RowsAffected = l
-	}
 	return
 }
+
 func (db *DB) Query(ar *ActiveRecord) (rs *ResultSet, err error) {
 	var results []map[string][]byte
 	if ar.cacheKey != "" {
@@ -209,10 +196,9 @@ func (db *DB) Query(ar *ActiveRecord) (rs *ResultSet, err error) {
 			return
 		}
 		defer rows.Close()
-		cols := []string{}
-		cols, err = rows.Columns()
-		if err != nil {
-			return
+		cols, e := rows.Columns()
+		if e != nil {
+			return nil, e
 		}
 		closCnt := len(cols)
 
@@ -256,8 +242,7 @@ func (db *DB) Query(ar *ActiveRecord) (rs *ResultSet, err error) {
 			}
 		}
 	}
-	rs = new(ResultSet)
-	rs.Init(&results)
+	rs = NewResultSet(&results)
 	return
 }
 
@@ -282,6 +267,8 @@ type DBConfig struct {
 	SyncMode                 int
 	OpenMode                 string
 	CacheMode                string
+	MaxIdleConns             int
+	MaxOpenConns             int
 }
 
 func NewDBConfigWith(dbfilename, openMode, cacheMode string, syncMode int) (cfg DBConfig) {
@@ -522,6 +509,7 @@ func (ar *ActiveRecord) Values() []interface{} {
 	return ar.values
 }
 func (ar *ActiveRecord) SQL() string {
+
 	if ar.currentSQL != "" {
 		return ar.currentSQL
 	}
@@ -543,6 +531,7 @@ func (ar *ActiveRecord) SQL() string {
 	case "delete":
 		ar.currentSQL = ar.getDeleteSQL()
 	}
+	ar.currentSQL = strings.Replace(ar.currentSQL, ar.tablePrefixSqlIdentifier, ar.tablePrefix, -1)
 	return ar.currentSQL
 }
 func (ar *ActiveRecord) getUpdateSQL() string {
@@ -982,15 +971,23 @@ type ResultSet struct {
 	RowsAffected int64
 }
 
-func (rs *ResultSet) Init(rawRows *[]map[string][]byte) {
+func NewResultSet(rawRows *[]map[string][]byte) (rs *ResultSet) {
+	rs = &ResultSet{}
 	if rawRows != nil {
 		rs.rawRows = rawRows
 	} else {
 		rs.rawRows = &([]map[string][]byte{})
 	}
+	return
 }
+
 func (rs *ResultSet) Len() int {
-	return len(*rs.rawRows)
+	vo := reflect.ValueOf(rs.rawRows)
+	if vo.IsNil() {
+		return 0
+	} else {
+		return len(*rs.rawRows)
+	}
 }
 func (rs *ResultSet) MapRows(keyColumn string) (rowsMap map[string]map[string]string) {
 	rowsMap = map[string]map[string]string{}
